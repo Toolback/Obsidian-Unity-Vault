@@ -1,0 +1,211 @@
+{
+  "main": {
+    "id": "c7b1f25ffc108347",
+    "type": "split",
+    "children": [
+      {
+        "id": "0ae213db5d781540",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "e86dfa371fc4b337",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "DevLogs Aethiel/01 Project Setup & Player Basics.md",
+                "mode": "source",
+                "source": false
+              }
+            }
+          },
+          {
+            "id": "7c61fa457bfc3d9f",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "Game Economics.md",
+                "mode": "source",
+                "source": false
+              }
+            }
+          },
+          {
+            "id": "ead3049a1f45d8e3",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "DevLogs Aethiel/01 Project Setup & Player Basics.md",
+                "mode": "source",
+                "source": false
+              }
+            }
+          },
+          {
+            "id": "d1c94f216e16b185",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "DevLogs Aethiel/02 Game Scene & TileMap.md",
+                "mode": "source",
+                "source": false
+              }
+            }
+          },
+          {
+            "id": "d195d131b31da8b6",
+            "type": "leaf",
+            "state": {
+              "type": "image",
+              "state": {
+                "file": "img/Pasted image 20221203185406.png"
+              }
+            }
+          },
+          {
+            "id": "d7e3e633746c7ef9",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "DevLogs Aethiel/01 Project Setup & Player Basics.md",
+                "mode": "source",
+                "source": false
+              }
+            }
+          }
+        ],
+        "currentTab": 5
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "1d22f6d7e96e04c8",
+    "type": "split",
+    "children": [
+      {
+        "id": "a1b5fc055dc26fec",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "8c1a6cd692f5f4f6",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical"
+              }
+            }
+          },
+          {
+            "id": "08ce4b367012bd01",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              }
+            }
+          },
+          {
+            "id": "474c6c44ff790901",
+            "type": "leaf",
+            "state": {
+              "type": "starred",
+              "state": {}
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 200
+  },
+  "right": {
+    "id": "2ca6e86055fc4a39",
+    "type": "split",
+    "children": [
+      {
+        "id": "e39a3428109f063b",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "c02a8a7946ae2807",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "DevLogs Aethiel/01 Project Setup & Player Basics.md",
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              }
+            }
+          },
+          {
+            "id": "c2e64f38b29c9198",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "DevLogs Aethiel/01 Project Setup & Player Basics.md",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              }
+            }
+          },
+          {
+            "id": "b93f083fc032c1d2",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true
+              }
+            }
+          },
+          {
+            "id": "dea858c7cce48a66",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "DevLogs Aethiel/01 Project Setup & Player Basics.md"
+              }
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "active": "d7e3e633746c7ef9",
+  "lastOpenFiles": [
+    "DevLogs Aethiel/03 Inventory & Items.md",
+    "Game Balancing.md",
+    "img/Pasted image 20221203185406.png",
+    "DevLogs Aethiel/01 Project Setup & Player Basics.md",
+    "DevLogs Aethiel/02 Game Scene & TileMap.md",
+    "Game Design.md",
+    "Game Economics.md",
+    "img/Pasted image 20221202143949.png",
+    "img/Pasted image 20221203015433.png",
+    "XBorg.md"
+  ]
+}
