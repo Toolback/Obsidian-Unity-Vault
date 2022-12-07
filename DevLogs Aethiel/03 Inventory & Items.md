@@ -540,7 +540,7 @@ public static int playerInitialInventoryCapacity = 24;
 public static int playerMaximumInventoryCapacity = 48;
 ```
 
-### Day 4 | 5/23
+### Day 4 | 5/23 (10h)
 ### Create a new event in the EventHandler.cs class
 ->trigger event when inventory has been changed. when a player pickup an item the GUI may want to know about it =)
 1. here we can use the built in "Action" event, unless the mvmt event with 16+ params which required 
@@ -1004,105 +1004,599 @@ EventHandler.InventoryUpdatedEvent += InventoryUpdated;
 
 ```
 
+### Day 5 | 6/12 (5h)
 ## Drop Items From Inventory Bar[6.10]
 
 goals :
-->
-->
+-> Drop items from inventory bar to the scene
+-> When dropping and item to the scene, we'll create a GO parented with the Items GO group
 
 concept :
--> 
+-> Ray cast with the UIInventorySlot to detect where the mouse is and so the click
 
-### Goals 1
-->
+(Make sur that in [Image] component the [Raycast Target] is enable, but not in for the InventoryHighlight and the textmeshpro ! (extra settings))
+
+### Add a new tag 
+-> identify the GO group (Items, which contain all items of the scene) by a tag to reference it by code [unity interface], "ItemsParentTransform", and also add the tag to our Tags.cs 
 1. asd
 ``` c#
-asd
+[Tags.cs]
+public const string ItemsParentTransform = "ItemsParentTransform";
 ```
 2. asd
 
-### Goals 2
-->
-1. asd
+### Pimp the Player.cs script
+-> When dragging item from inventory bar, we dont want the player to be able to move
+1. Update the Update() methods to run only "if (!PlayerInputIsDisabled)"
 ``` c#
-asd
-```
-2. asd
+[Player.cs]
 
-## Reorder Item In Inventory Bar[6.11]
+private void Update()
+{
+#region Player Input
+  
+if (!PlayerInputIsDisabled)
+{
+// reset all animations
+ResetAnimationTriggers();
+// capture player mvmt input (set direction, speed, etc)
+PlayerMovementInput();
+// capture if player press shift for running of not (walking)
+PlayerWalkInput();
+
+// Send event to any listeners from captured/cached movements input (body part sprites animators for ex)
+EventHandler.CallMovementEvent([...]);
+}
+#endregion Player Input
+}
+```
+2. then add a couple of functions :
+``` c#
+[...]Player.cs
+
+private void ResetMouvement()
+{
+	// Reset Mouvement
+	xInput = 0f;
+	yInput = 0f;
+	isRunning = false;
+	isWalking = false;
+	isIdle = true;
+}
+
+public void DisablePlayerInputAndResetMouvement()
+{
+	DisablePlayerInput();
+	ResetMouvement();
+	
+	// Send Event to any listeners for player movement input with changed parameters
+	EventHandler.CallMovementEvent(xInput, yInput, isWalking, isRunning, isIdle, isCarrying, toolEffect,
+	isUsingToolRight, isUsingToolLeft, isUsingToolUp, isUsingToolDown,
+	isLiftingToolRight, isLiftingToolLeft, isLiftingToolUp, isLiftingToolDown,
+	isPickingRight, isPickingLeft, isPickingUp, isPickingDown,
+	isSwingingToolRight, isSwingingToolLeft, isSwingingToolUp, isSwingingToolDown,
+	false, false, false, false);
+}
+
+public void DisablePlayerInput()
+{
+	PlayerInputIsDisabled = true;
+}
+
+public void EnablePlayerInput()
+{
+	PlayerInputIsDisabled = false;
+}
+
+```
+3. asd
+
+### Create a Prefab Reference for item drop (new items created)
+-> d
+1. add a GO reference to UIInventoryBar.cs, populate it within the inventorySlot as we dragg item out
+``` c#
+[...] UIInventoryBar.cs
+public GameObject inventoryBarDraggedItem;
+```
+
+### Create the  dragged item Prefab GO
+-> GO Created when item dragged out of Inventory Bar
+
+1. Create a new empty GO under UIInventoryBar in the Hierarchy, and name it "InventoryDraggedItem"
+-> Set its [width] and [height] to 16
+-> Add a [Canvas] Component with :
+-> [Pixel Perfect] : On
+-> [Override Sorting] : Enable (Ensure the dragged item appear before the other items in the bar)
+-> [Sort Order] : 2
+-> and Add a [Canvas Renderer] Component
+![[Pasted image 20221206233026.png]]
+-> then create a child "Item" under InventoryDraggedItem :
+-> set its [height] and [width] to 16
+-> Add an [Image] component that will be set by our dragged item
+
+2. Create a prefab for the InventoryDraggedItem and delete it from the scene ! 
+-> in the prefab folder, clic on the InventoryDraggedItem, and on its [Canvas] component, set its [Render Mode] to : Screen Space - Overlay and enable its [Pixel Perfect]
+
+3. then drag the prefab InventoryDraggedItem to the [UIInventoryBar] script component of the UIInventoryBar in the hierarchy, to be referenced when item dragged out
+![[Pasted image 20221206233631.png]]
+
+### Add the logic to UIInventorySlot.cs
+-> Play with the unity event system 
+
+1. add a new namespace and few variables
+``` c#
+[...] UIInventorySlot
+using UnityEngine.EventSystems;
+
+public class UIInventorySlot : MonoBehaviour
+{
+
+	private Camera mainCamera; // calling a methods named "screenToWorldPoint" static methods on main camera which convert from screen point to world point vector
+	private Transform parentItem; // set to the parent GO in the scene that we tag
+	public GameObject draggedItem; // for GO created when dragged
+
+	[SerializeField] private UIInventoryBar inventoryBar = null; // Inventory bar referenced from the unity inspector
+	[SerializeField] private GameObject itemPrefab = null;
+```
+2. initiate var with a Start() method
+``` c#
+[...]UIInventorySlot.cs
+private void Start()
+{
+mainCamera = Camera.main;
+
+parentItem = GameObject.FindGameObjectWithTag(Tags.ItemsParentTransform).transform;
+
+}
+```
+3. Create the events methods 
+-> the Unity event system works in conjonction with interface for detecting drag and drop and click. Those interface are call "IBeginDragHandler", "IDragHandler", "IEndDragHandler"
+``` c#
+[...]UIInventorySlot.cs
+public void OnBeginDrag(PointerEventData eventData)
+{
+if (itemDetails != null)
+{
+// Disable keyboard input
+Player.Instance.DisablePlayerInputAndResetMovement();
+  
+// Instatiate gameobject as dragged item
+draggedItem = Instantiate(inventoryBar.inventoryBarDraggedItem, inventoryBar.transform);
+
+// Get image for dragged item
+Image draggedItemImage = draggedItem.GetComponentInChildren<Image>();
+draggedItemImage.sprite = inventorySlotImage.sprite;
+
+}
+}
+
+public void OnDrag(PointerEventData eventData)
+{
+// move game object as dragged item
+if (draggedItem != null)
+{
+draggedItem.transform.position = Input.mousePosition;
+}
+}
+
+public void OnEndDrag(PointerEventData eventData)
+{
+	// Destroy game object as dragged item
+	if (draggedItem != null)
+	{
+	Destroy(draggedItem);
+	  
+	// If drag ends over inventory bar, get item drag is over and swap them
+	
+		if (eventData.pointerCurrentRaycast.gameObject != null && eventData.pointerCurrentRaycast.gameObject.GetComponent<UIInventorySlot>() != null)
+		
+		{
+		 // to fill later
+		}
+		// else attempt to drop the item if it can be dropped
+	else
+		{
+		if (itemDetails.canBeDropped)
+			{
+			DropSelectedItemAtMousePosition();
+			}
+		}
+		
+		// Enable player input
+		Player.Instance.EnablePlayerInput();
+		}
+}
+
+/// <summary>
+/// Drops the item (if selected) at the current mouse position. Called by the DropItem event.
+/// </summary>
+private void DropSelectedItemAtMousePosition()
+{
+	if (itemDetails != null && isSelected)
+	{
+
+			Vector3 worldPosition = mainCamera.ScreenToWorldPoint(new Vector3(Input.mousePosition.x, Input.mousePosition.y, -mainCamera.transform.position.z));
+			
+			// Create item from prefab at mouse position
+			GameObject itemGameObject = Instantiate(itemPrefab, new Vector3(worldPosition.x, worldPosition.y - Settings.gridCellSize / 2f, worldPosition.z), Quaternion.identity, parentItem);
+			Item item = itemGameObject.GetComponent<Item>();
+			item.ItemCode = itemDetails.itemCode;
+			
+			// Remove item from players inventory	
+			InventoryManager.Instance.RemoveItem(InventoryLocation.player, item.ItemCode);
+		
+	}
+}
+```
+4. add the RemoveItem() and other methods to InventoryManager.cs
+``` c#
+[...] InventoryManager.cs
+
+/// <summary>
+/// Remove an item from the inventory, and create a game object at the position it was dropped
+/// </summary>
+public void RemoveItem(InventoryLocation inventoryLocation, int itemCode)
+{
+	List<InventoryItem> inventoryList = inventoryLists[(int)inventoryLocation];
+	
+	// Check if inventory already contains the item
+	int itemPosition = FindItemInInventory(inventoryLocation, itemCode);
+	
+	if (itemPosition != -1)
+	{
+		RemoveItemAtPosition(inventoryList, itemCode, itemPosition);
+	}
+	
+	// Send event that inventory has been updated
+	EventHandler.CallInventoryUpdatedEvent(inventoryLocation, inventoryLists[(int)inventoryLocation]);
+
+}
+
+private void RemoveItemAtPosition(List<InventoryItem> inventoryList, int itemCode, int position)
+{
+	InventoryItem inventoryItem = new InventoryItem();
+	
+	int quantity = inventoryList[position].itemQuantity - 1;
+	
+	if (quantity > 0)
+	{
+		inventoryItem.itemQuantity = quantity;
+		inventoryItem.itemCode = itemCode;
+		inventoryList[position] = inventoryItem;
+	}
+	else
+	{
+		inventoryList.RemoveAt(position);
+	}
+}
+```
+5. add the corresponding field in the UIInventorySlot Prefab !
+
+## Reorder Items in Inventory Bar [6.11]
 
 goals :
-->
-->
+-> Allow player to swap item in the inventory bar by dragging them
 
-concept :
--> 
+### Update the UIInventorySlot.cs 
+-> add field to identify slot number this ui slot is
 
-### Goals 1
-->
-1. asd
+1. to update in the inspector
 ``` c#
-asd
+[...] UIInventorySlot.cs
+[SerializeField] private int slotNumber = 0;
 ```
-2. asd
-
-### Goals 2
-->
-1. asd
+2. Update the OnEndDragMethod()
 ``` c#
-asd
-```
-2. asd
+public void OnEndDrag(PointerEventData eventData)
+{
+// Destroy game object as dragged item
+if (draggedItem != null)
+{
+Destroy(draggedItem);
 
+// If drag ends over inventory bar, get item drag is over and swap them
+if (eventData.pointerCurrentRaycast.gameObject != null && eventData.pointerCurrentRaycast.gameObject.GetComponent<UIInventorySlot>() != null)
+{
+// get the slot number where the drag ended
+int toSlotNumber = eventData.pointerCurrentRaycast.gameObject.GetComponent<UIInventorySlot>().slotNumber;
+
+// Swap inventory items in inventory list
+
+InventoryManager.Instance.SwapInventoryItems(InventoryLocation.player, slotNumber, toSlotNumber);
+
+}
+// else attempt to drop the item if it can be dropped
+else
+{
+if (itemDetails.canBeDropped)
+{
+DropSelectedItemAtMousePosition();
+}
+}
+
+// Enable player input
+Player.Instance.EnablePlayerInput();
+}
+}
+```
+
+### Update the InventoryManager.cs 
+
+1. add the SwapInventoryItems()
+``` c#
+[...] InventoryManager.cs
+///<summary>
+///Swap item at fromItem index with item at toItem index in inventoryLocation inventory list
+///</summary>
+
+public void SwapInventoryItems(InventoryLocation inventoryLocation, int fromItem, int toItem)
+{
+	// if fromItem index and toItemIndex are within the bounds of the list, not the same, and greater than or equal to zero
+	if (fromItem < inventoryLists[(int)inventoryLocation].Count && toItem < inventoryLists[(int)inventoryLocation].Count
+	&& fromItem != toItem && fromItem >= 0 && toItem >= 0)
+	{
+		InventoryItem fromInventoryItem = inventoryLists[(int)inventoryLocation][fromItem];
+		InventoryItem toInventoryItem = inventoryLists[(int)inventoryLocation][toItem];
+		
+		inventoryLists[(int)inventoryLocation][toItem] = fromInventoryItem;
+		inventoryLists[(int)inventoryLocation][fromItem] = toInventoryItem;
+		
+		// Send event that inventory has been updated
+		EventHandler.CallInventoryUpdatedEvent(inventoryLocation, inventoryLists[(int)inventoryLocation]);
+	}
+}
+```
+
+2. Then assign each InventorySlot in the Hierarchy to its corresponding slot number !  
+![[Pasted image 20221207010928.png]]
 ## Item Description Pop ups[6.12]
 
 goals :
-->
-->
-
-concept :
--> 
-
-### Goals 1
-->
-1. asd
-``` c#
-asd
-```
-2. asd
-
-### Goals 2
-->
-1. asd
-``` c#
-asd
-```
-2. asd
-
-## More Items in the Scene[6.13]
-
-goals :
-->
+-> When hover on the inventory bar, a text box display with description from the item details
 ->
 
 concept :
--> 
+-> Create a Prefab GO for the Pop up text box, and we're gonna populate it in script with the description from item detail
 
-### Goals 1
-->
-1. asd
-``` c#
-asd
-```
-2. asd
+### Create the GO
+1. under UICanvasGroup, create the "InventoryTextBox" empty GO ("f" in scene view to go to view)
+-> add a [Content Size Fitter] component to it, which automaticaly rezise the GO based on its content 
+-> set the [Vertical Fit] to : Preferred Size, which set the vertical size of the inventory text box based on the elements its contains
+-> add a [Vertical Layout Group] Component, which layout the child GO of the inventory text box verticaly
+	-> set its Padding>[Spacing] in to -4
+	-> [Control Child Size] enable Width & Height
+	-> [Child Force Expand] Enable Width & Height
 
-### Goals 2
-->
-1. asd
+2. Add a child UI image GO,
+-> right click Inventory Text Box > UI > Image, named "TextBoxImage1"
+-> set its [Source Image] to (what u want) "text box" here
+
+Below this TextBoxImage1 GO, we're going to have some text game object and we want them layout sorted vertically aswell, so
+-> add a [Vertical Layout Group] component
+	Left : 10
+	Right : 10
+	Top : 5
+	Bottom: 5
+	Spacing : 1
+	ControleChild Size : Enable Width & Height
+
+3. Add text GO
+-> Right click on TextBoxImage1
+-> UI>Text - TextMeshPro named "Text1"
+	-> set the [font size] to 10
+	->	[Vertex Color] => black
+4. duplique and name it Text2
+-> set its [font size] to 8
+-> [Vertex Color] => E00000 (red)
+5. Dup text 3
+-> [Vertex Color] => black
+6. Dup TextBox Image1 and name it TextBoxImage2
+![[Pasted image 20221207014508.png]]
+
+then delete all Predefine text, drag the InventoryTextBox GO to Prefabs and delete it from the scene !
+
+### Prefab GO Access Text Script
+-> Create a new class "UIInventoryTextBox.cs" to attach to text box to easily access the each texts fields created
+1. Define 6 variables to define in the inspector for each text, and a methods to set those texts once defined with item details on hover
 ``` c#
-asd
+﻿using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.UI;
+using TMPro;
+
+public class UIInventoryTextBox : MonoBehaviour
+{
+    [SerializeField] private TextMeshProUGUI textMeshTop1 = null;
+    [SerializeField] private TextMeshProUGUI textMeshTop2 = null;
+    [SerializeField] private TextMeshProUGUI textMeshTop3 = null;
+    [SerializeField] private TextMeshProUGUI textMeshBottom1 = null;
+    [SerializeField] private TextMeshProUGUI textMeshBottom2 = null;
+    [SerializeField] private TextMeshProUGUI textMeshBottom3 = null;
+
+
+
+    // Set text values
+    public void SetTextboxText(string textTop1, string textTop2, string textTop3, string textBottom1, string textBottom2, string textBottom3)
+    {
+        textMeshTop1.text = textTop1;
+        textMeshTop2.text = textTop2;
+        textMeshTop3.text = textTop3;
+        textMeshBottom1.text = textBottom1;
+        textMeshBottom2.text = textBottom2;
+        textMeshBottom3.text = textBottom3;
+    }
+
+}
 ```
-2. asd
+2. then attach the script to the prefab and populate the variable in the inspector with appropriate text GO
+
+### Update Settings.cs
+-> Add Strings Constants used for description box for different type of tools
+``` c#
+[...] Settings.cs
+
+//Tools
+public const string HoeingTool = "Hoe";
+public const string ChoppingTool = "Axe";
+public const string BreakingTool = "Pickaxe";
+public const string ReapingTool = "Scythe";
+public const string WateringTool = "Watering Can";
+public const string CollectingTool = "Basket";
+```
+
+### Update InventoryManager.cs
+-> New methods to get item description with item type passed in
+``` c#
+[...] InventoryManager.cs
+
+/// <summary>
+/// Get the item type description for an item type - returns the item type description as a string for a given ItemType
+/// </summary>
+
+public string GetItemTypeDescription(ItemType itemType)
+{
+	string itemTypeDescription;
+	switch (itemType)
+	{
+		case ItemType.Breaking_tool:
+		itemTypeDescription = Settings.BreakingTool;
+		break;
+		
+		case ItemType.Chopping_tool:
+		itemTypeDescription = Settings.ChoppingTool;
+		break;
+		
+		case ItemType.Hoeing_tool:
+		itemTypeDescription = Settings.HoeingTool;
+		break;
+		
+		case ItemType.Reaping_tool:
+		itemTypeDescription = Settings.ReapingTool;
+		break;
+		
+		case ItemType.Watering_tool:
+		itemTypeDescription = Settings.WateringTool;
+		break;
+		
+		case ItemType.Collecting_tool:
+		itemTypeDescription = Settings.CollectingTool;
+		break;
+		
+		default:
+		itemTypeDescription = itemType.ToString();
+		break;
+	}
+	return itemTypeDescription;
+}
+```
+
+### Update UIInventorySlot.cs
+-> when creating our item description textbox GO, we going to parent it, underneath his parent canvas. 
+
+``` c#
+[...] UIInventorySlot.cs
+
+private Canvas parentCanvas;
+
+[SerializeField] private GameObject inventoryTextBoxPrefab = null;
+
+private void Awake()
+{
+	parentCanvas = GetComponentInParent<Canvas>();
+}
+
+```
+
+-> when the cursor enter and exit a GO and the interface, we need to do all these
+
+``` c#
+[...] UIInventorySlot.cs
+
+public class UIInventorySlot : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler, IPointerEnterHandler, IPointerEnterExit
+{
+[...]
+}
+
+```
+
+-> create the methods to pop up text
+``` c#
+[...] UIInventorySlot.cs
+
+    public void OnPointerEnter(PointerEventData eventData)
+    {
+        // Populate text box with item details
+        if (itemQuantity != 0)
+        {
+            // Instantiate inventory text box
+            inventoryBar.inventoryTextBoxGameobject = Instantiate(inventoryTextBoxPrefab, transform.position, Quaternion.identity);
+            inventoryBar.inventoryTextBoxGameobject.transform.SetParent(parentCanvas.transform, false);
+
+            UIInventoryTextBox inventoryTextBox = inventoryBar.inventoryTextBoxGameobject.GetComponent<UIInventoryTextBox>();
+
+            // Set item type description
+            string itemTypeDescription = InventoryManager.Instance.GetItemTypeDescription(itemDetails.itemType);
+
+            // Populate text box
+            inventoryTextBox.SetTextboxText(itemDetails.itemDescription, itemTypeDescription, "", itemDetails.itemLongDescription, "", "");
+
+            // Set text box position according to inventory bar position
+            if (inventoryBar.IsInventoryBarPositionBottom)
+
+            {
+                inventoryBar.inventoryTextBoxGameobject.GetComponent<RectTransform>().pivot = new Vector2(0.5f, 0f);
+                inventoryBar.inventoryTextBoxGameobject.transform.position = new Vector3(transform.position.x, transform.position.y + 50f, transform.position.z);
+            }
+            else
+            {
+                inventoryBar.inventoryTextBoxGameobject.GetComponent<RectTransform>().pivot = new Vector2(0.5f, 1f);
+                inventoryBar.inventoryTextBoxGameobject.transform.position = new Vector3(transform.position.x, transform.position.y - 50f, transform.position.z);
+            }
+        }
+    }
+
+    public void OnPointerExit(PointerEventData eventData)
+    {
+        DestroyInventoryTextBox();
+    }
+
+
+```
+-> update the OnEndDrag() to clean instance of popup text
+``` c#
+[...] UIInventorySlot.cs
+// If drag ends over inventory bar, get item drag is over and swap them
+
+public void OnEndDrag(PointerEventData eventData)
+{
+// Destroy game object as dragged item
+if (draggedItem != null)
+{
+Destroy(draggedItem);
+
+// If drag ends over inventory bar, get item drag is over and swap them
+if (eventData.pointerCurrentRaycast.gameObject != null && eventData.pointerCurrentRaycast.gameObject.GetComponent<UIInventorySlot>() != null)
+{
+// get the slot number where the drag ended
+int toSlotNumber = eventData.pointerCurrentRaycast.gameObject.GetComponent<UIInventorySlot>().slotNumber;
+
+// Swap inventory items in inventory list
+InventoryManager.Instance.SwapInventoryItems(InventoryLocation.player, slotNumber, toSlotNumber);
+
+// Destroy inventory text box
+DestroyInventoryTextBox();
+[...]
+}
+```
+
+Finly Add a GO Field to UIInventoryBar.cs
+``` c#
+[...] UIIventoryBar.cs
+[HideInInspector] public GameObject inventoryTextBoxGameobject;
+```
+
+and assign textbox field in UIInventorySlot  prefab !
 
 ## Select Items in the Inventory Bar[6.14]
 

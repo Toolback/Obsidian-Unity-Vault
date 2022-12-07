@@ -71,7 +71,7 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "DevLogs Aethiel/01 Project Setup & Player Basics.md",
+                "file": "DevLogs Aethiel/03 Inventory & Items.md",
                 "mode": "source",
                 "source": false
               }
@@ -144,7 +144,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "DevLogs Aethiel/01 Project Setup & Player Basics.md",
+                "file": "DevLogs Aethiel/03 Inventory & Items.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -161,7 +161,7 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "DevLogs Aethiel/01 Project Setup & Player Basics.md",
+                "file": "DevLogs Aethiel/03 Inventory & Items.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               }
@@ -184,7 +184,7 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "DevLogs Aethiel/01 Project Setup & Player Basics.md"
+                "file": "DevLogs Aethiel/03 Inventory & Items.md"
               }
             }
           }
@@ -197,15 +197,15 @@
   },
   "active": "d7e3e633746c7ef9",
   "lastOpenFiles": [
+    "Pasted image 20221206232328.png",
     "DevLogs Aethiel/03 Inventory & Items.md",
+    "DevLogs Aethiel/01 Project Setup & Player Basics.md",
     "Game Balancing.md",
     "img/Pasted image 20221203185406.png",
-    "DevLogs Aethiel/01 Project Setup & Player Basics.md",
     "DevLogs Aethiel/02 Game Scene & TileMap.md",
     "Game Design.md",
     "Game Economics.md",
     "img/Pasted image 20221202143949.png",
-    "img/Pasted image 20221203015433.png",
-    "XBorg.md"
+    "img/Pasted image 20221203015433.png"
   ]
 }
