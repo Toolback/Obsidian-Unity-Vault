@@ -20,8 +20,12 @@ play with
 Blockchain / Multiplayer
 max 100/200 players ?
 2D Topdown Ghibli - CyberPunk
+(pixel architect yt)
 ![[Pasted image 20221203015433.png]]
+![[Pasted image 20221207130637.png]]
+(Eastward steam)![[Pasted image 20221207131154.png]]
 
+![[Pasted image 20221207130731.png]]
 ## Game Idea
 - Creation of special room with mecanics (ex redstone) like in habo hotel
 - Social Mecanics : 

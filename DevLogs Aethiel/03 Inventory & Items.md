@@ -1597,128 +1597,673 @@ Finly Add a GO Field to UIInventoryBar.cs
 ```
 
 and assign textbox field in UIInventorySlot  prefab !
-
+#### Day 6 | 07|12 ()
 ## Select Items in the Inventory Bar[6.14]
 
 goals :
-->
+-> Create a red highlights in the inventory bar, and keep a tracks of selected item in the Inventory Manager ! 
 ->
 
 concept :
+-> We'v already have multiple inventory list referenced by an array.
+We'll also need this selected inventory item in an array to be able cater for multiple inventory location
+
+### Pimps the InventoryManager.cs
+->
+1. add a field to keep track of the selected inventory item
+``` c#
+[...]InventoryManager.cs
+
+private int[] selectedInventoryItem; // the index of the array is the inventory list, and the value is the item code
+
+//update the awake methods
+protected override void Awake()
+{
+	base.Awake();
+	
+	// Create Inventory List
+	CreateInventoryList();
+	// Create item details dictionary
+	CreateItemDetailsDictionary();
+	
+	// new part
+	// initialise selected inventory item array
+	selectedInventoryItem = new int[(int)InventoryLocation.count];
+	
+	for (int i = 0; i < selectedInventoryItem.Length; i++)
+	{
+	// -1 means that we havent any item selected
+		selectedInventoryItem[i] = -1;
+	}
+}
+```
+2. and define setters
+``` c# 
+[...] InventoryManager.cs
+/// <summary>
+/// Set the selected inventory item for inventoryLocation to itemCode
+/// </summary>
+public void SetSelectedInventoryItem(InventoryLocation inventoryLocation, int itemCode)
+{
+	selectedInventoryItem[(int)inventoryLocation] = itemCode;
+}
+
+/// <summary>
+/// Clear the selected inventory item for inventoryLocation
+/// </summary>
+public void ClearSelectedInventoryItem(InventoryLocation inventoryLocation)
+{
+	selectedInventoryItem[(int)inventoryLocation] = -1;
+}
+```
+3. asf
+
+### Works on the UIInventorySlot.cs
 -> 
-
-### Goals 1
-->
-1. asd
+1. add a new field to keep track whether this ui inventory slot i selected or not
 ``` c#
-asd
+[...] UiInventorySlot.cs
+[HideInInspector] public bool isSelected = false;
 ```
-2. asd
-
-### Goals 2
-->
-1. asd
+2. add a new interface to handle mouse click event, "IPointerClickHandler"
 ``` c#
-asd
+[...] UiInventorySlot.cs
+
+public class UIInventorySlot : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler, IPointerEnterHandler, IPointerExitHandler, IPointerClickHandler
+{
+[...]
+	public void OnPointerClick(PointerEventData eventData)
+	{
+		// if left click
+		if (eventData.button == PointerEventData.InputButton.Left)
+		{
+		// if inventory slot currently selected then deselect
+			if (isSelected == true)
+			{
+				ClearSelectedItem();
+			}
+			else
+			{
+				if (itemQuantity > 0)
+				{
+					SetSelectedItem();
+				}
+			}
+		}
+	}
+
+/// <summary>
+/// Sets this inventory slot item to be selected
+/// </summary>
+private void SetSelectedItem()
+{
+	// Clear currently highlighted items
+	inventoryBar.ClearHighlightOnInventorySlots();
+	
+	// Highlight item on inventory bar
+	isSelected = true;  
+	
+	// Set highlighted inventory slots
+	inventoryBar.SetHighlightedInventorySlots();  
+	
+	// Set item selected in inventory
+	InventoryManager.Instance.SetSelectedInventoryItem(InventoryLocation.player, itemDetails.itemCode);
+}
+
+	public void ClearSelectedItem()
+
+	{
+		
+		// Clear currently highlighted items
+		inventoryBar.ClearHighlightOnInventorySlots();
+		
+		isSelected = false;
+
+		// set no item selected in inventory
+InventoryManager.Instance.ClearSelectedInventoryItem(InventoryLocation.player);
+		
+	}
+}
 ```
-2. asd
+3. Add a check "isSelected" to DropSelectedItemAtMousePosition and the clearSelectedItem() call
+``` c#
+[...] UIInventorySlot.cs
+
+/// <summary>
+/// Drops the item (if selected) at the current mouse position. Called by the DropItem event.
+/// </summary>
+
+private void DropSelectedItemAtMousePosition()
+{
+if (itemDetails != null && isSelected) // here
+{
+Vector3 worldPosition = mainCamera.ScreenToWorldPoint(new Vector3(Input.mousePosition.x, Input.mousePosition.y, -mainCamera.transform.position.z));
+// Create item from prefab at mouse position
+GameObject itemGameObject = Instantiate(itemPrefab, new Vector3(worldPosition.x, worldPosition.y - Settings.gridCellSize / 2f, worldPosition.z), Quaternion.identity, parentItem);
+Item item = itemGameObject.GetComponent<Item>();
+item.ItemCode = itemDetails.itemCode;
+
+// Remove item from players inventory
+InventoryManager.Instance.RemoveItem(InventoryLocation.player, item.ItemCode);
+
+  
+
+ // If no more of item then clear selected
+
+ if (InventoryManager.Instance.FindItemInInventory(InventoryLocation.player, item.ItemCode) == -1)
+ {
+ ClearSelectedItem(); // here
+ }
+}
+}
+```
+4. add a call to setSelectedItem() on the OnBeginDrag() function
+``` c# 
+[...] UIInvneotySlot.cs
+public void OnBeginDrag(PointerEventData eventData)
+{
+if (itemDetails != null)
+{
+// Disable keyboard input
+Player.Instance.DisablePlayerInputAndResetMovement();
+
+// Instatiate gameobject as dragged item
+draggedItem = Instantiate(inventoryBar.inventoryBarDraggedItem, inventoryBar.transform);
+
+// Get image for dragged item
+Image draggedItemImage = draggedItem.GetComponentInChildren<Image>();
+draggedItemImage.sprite = inventorySlotImage.sprite;
+
+SetSelectedItem(); // here
+}
+}
+```
+5. and to onEndDrag
+``` c#
+public void OnEndDrag(PointerEventData eventData)
+{
+// Destroy game object as dragged item
+if (draggedItem != null)
+{
+Destroy(draggedItem);
+
+// If drag ends over inventory bar, get item drag is over and swap them
+if (eventData.pointerCurrentRaycast.gameObject != null && eventData.pointerCurrentRaycast.gameObject.GetComponent<UIInventorySlot>() != null)
+{
+// get the slot number where the drag ended
+int toSlotNumber = eventData.pointerCurrentRaycast.gameObject.GetComponent<UIInventorySlot>().slotNumber;
+
+// Swap inventory items in inventory list
+InventoryManager.Instance.SwapInventoryItems(InventoryLocation.player, slotNumber, toSlotNumber);
+
+// Destroy inventory text box
+DestroyInventoryTextBox();
+
+// Clear selected item
+ClearSelectedItem(); // here
+}
+// else attempt to drop the item if it can be dropped
+else
+{
+if (itemDetails.canBeDropped)
+{
+DropSelectedItemAtMousePosition();
+}
+}
+
+// Enable player input
+Player.Instance.EnablePlayerInput();
+}
+}
+```
+### Update UIInventoryBar.cs 
+-> add the ClearHighlightOnInventorySlots() to match UIInventorySlot.cs
+-> add SetHighlitedInventorySlot()
+
+``` c#
+[...] UiInventoryBar.cs
+/// <summary>
+/// Clear all highlights from the inventory bar
+/// </summary>
+public void ClearHighlightOnInventorySlots()
+{
+	if (inventorySlot.Length > 0)
+	{
+	// loop through inventory slots and clear highlight sprites
+	for (int i = 0; i < inventorySlot.Length; i++)
+	{
+		if (inventorySlot[i].isSelected)
+		{
+			inventorySlot[i].isSelected = false;
+			inventorySlot[i].inventorySlotHighlight.color = new Color(0f, 0f, 0f, 0f);// reduce the alpha to 0 (invisible)
+			
+			// Update inventory to show item as not selected
+			InventoryManager.Instance.ClearSelectedInventoryItem(InventoryLocation.player);
+			}
+		}
+	}
+}
+
+/// <summary>
+/// Set the selected highlight if set on all inventory item positions
+/// </summary>
+public void SetHighlightedInventorySlots()
+{
+	if (inventorySlot.Length > 0)
+	{
+		// loop through inventory slots and clear highlight sprites
+		for (int i = 0; i < inventorySlot.Length; i++)
+		{
+			SetHighlightedInventorySlots(i);
+		}
+	}
+}
+
+/// <summary>
+/// Set the selected highlight if set on an inventory item for a given slot item position
+/// </summary>
+public void SetHighlightedInventorySlots(int itemPosition)
+{
+	if (inventorySlot.Length > 0 && inventorySlot[itemPosition].itemDetails != null)
+	{
+		if (inventorySlot[itemPosition].isSelected)
+		{
+			inventorySlot[itemPosition].inventorySlotHighlight.color = new Color(1f, 1f, 1f, 1f);
+			
+			// Update inventory to show item as selected
+			InventoryManager.Instance.SetSelectedInventoryItem(InventoryLocation.player, inventorySlot[itemPosition].itemDetails.itemCode);
+		}
+	}
+}
+```
+2. update methods to call SetHighlightedInventorySlot()
+``` c#
+[...] UIInventoryBar.cs
+
+private void ClearInventorySlots()
+{
+	if (inventorySlot.Length > 0)
+	{
+	// loop through inventory slots and update with blank sprite
+		for (int i = 0; i < inventorySlot.Length; i++)
+		
+		{
+			inventorySlot[i].inventorySlotImage.sprite = blank16x16sprite;
+			inventorySlot[i].textMeshProUGUI.text = "";
+			inventorySlot[i].itemDetails = null;
+			inventorySlot[i].itemQuantity = 0;
+			SetHighlightedInventorySlots(i); // here
+		}
+	}
+}
+
+
+// and in InventoryUpdated()
+->
+// add images and details to inventory item slot
+
+		inventorySlot[i].inventorySlotImage.sprite = itemDetails.itemSprite;
+		inventorySlot[i].textMeshProUGUI.text = inventoryList[i].itemQuantity.ToString();
+		inventorySlot[i].itemDetails = itemDetails;
+		inventorySlot[i].itemQuantity = inventoryList[i].itemQuantity;
+		
+		SetHighlightedInventorySlots(i); // here
+	}
+}
+else
+```
+![[Pasted image 20221207141452.png]]
 
 ## Carry Item Animation Overrides[6.15]
 
 goals :
-->
-->
-
-concept :
--> 
-
-### Goals 1
-->
-1. asd
-``` c#
-asd
-```
-2. asd
-
-### Goals 2
-->
-1. asd
-``` c#
-asd
-```
-2. asd
-
-## Title[6.16]
-
-goals :
-->
+-> override normal arms animation by carrying item above head when proper item is selected in the inventory bar (idle / walk / run)
 ->
 
 concept :
--> 
+-> [Animation Controller] holds references to animation clips, and theses animations clips are played  as the different states of the animation controller triggered the animation clips of the animation controller
+![[Pasted image 20221207141800.png]]
 
-### Goals 1
+-> To override an animation clip that get played at runtime, we need to manipulate the animated component
+![[Pasted image 20221207142001.png]]
+
+An Animator Override Controllers works by defining a key value pair list. 
+-> Populated with originial animation referenced in the animation controller that we want to change, and correspondant replacement animation clip
+-> Apply then that list to animator overrider controller
+-> the animator on  the GO then sets its runtime animation to equal this animator override controller
+![[Pasted image 20221207142352.png]]
+
+by doing so, the animator component still control the execution of the states in the original animation controller, but the animation played will be the remplacement of the animation clip
+![[Pasted image 20221207142546.png]]
+
+- To do this in C# => 
+![[Pasted image 20221207142721.png]]
+![[Pasted image 20221207143600.png]]
+![[Pasted image 20221207143650.png]]
+![[Pasted image 20221207143707.png]]
+### Create the SO Animation Type
 ->
 1. asd
 ``` c#
-asd
-```
-2. asd
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
 
-### Goals 2
+
+[CreateAssetMenu(fileName = "so_AnimationType", menuName = "Scriptable Objects/Animation/Animation Type")]
+public class SO_AnimationType : ScriptableObject
+{
+
+    public AnimationClip animationClip; 
+    public AnimationName animationName; // ex idle up
+    public CharacterPartAnimator characterPart; // arms ? tools ?
+    public PartVariantColour partVariantColour; // if diff variations based on colors
+    public PartVariantType partVariantType; // ex carryvariant for arms 
+}
+```
+
+
+### Create the CharacterAttribute.cs
 ->
 1. asd
 ``` c#
-asd
+[System.Serializable]
+public struct CharacterAttribute
+{
+
+    public CharacterPartAnimator characterPart;
+    public PartVariantColour partVariantColour;
+    public PartVariantType partVariantType;
+
+    public CharacterAttribute(CharacterPartAnimator characterPart, PartVariantColour partVariantColour, PartVariantType partVariantType)
+    {
+        this.characterPart = characterPart;
+        this.partVariantColour = partVariantColour;
+        this.partVariantType = partVariantType;
+    }
+}
 ```
 2. asd
 
-## Title[6.17]
-
-goals :
-->
-->
-
-concept :
--> 
-
-### Goals 1
+### Add definitions in Enums.cs
 ->
 1. asd
 ``` c#
-asd
+﻿public enum AnimationName
+{
+    idleDown,
+    idleUp,
+    idleRight,
+    idleLeft,
+    walkUp,
+    walkDown,
+    walkRight,
+    walkLeft,
+    runUp,
+    runDown,
+    runRight,
+    runLeft,
+    useToolUp,
+    useToolDown,
+    useToolRight,
+    useToolLeft,
+    swingToolUp,
+    swingToolDown,
+    swingToolRight,
+    swingToolLeft,
+    liftToolUp,
+    liftToolDown,
+    liftToolRight,
+    liftToolLeft,
+    holdToolUp,
+    holdToolDown,
+    holdToolRight,
+    holdToolLeft,
+    pickDown,
+    pickUp,
+    pickRight,
+    pickLeft,
+    count
+}
+
+public enum CharacterPartAnimator
+{
+    body,
+    arms,
+    hair,
+    tool,
+    hat,
+    count
+}
+public enum PartVariantColour
+{ //only for exemple, we could have variations based on colors aswell 
+    none,
+    count
+}
+
+public enum PartVariantType
+{
+    none,
+    carry,
+    hoe,
+    pickaxe,
+    axe,
+    scythe,
+    wateringCan,
+    count
+}
 ```
 2. asd
 
-### Goals 2
+### Create the AnimationOverrides.cs
 ->
 1. asd
 ``` c#
-asd
+using System.Collections.Generic;
+using System.Diagnostics;
+using UnityEngine;
+
+public class AnimationOverrides : MonoBehaviour
+{
+	// drag our player GO in this character field to find the animator on the child GO 
+    [SerializeField] private GameObject character = null;
+    // reference all SO animations created
+    [SerializeField] private SO_AnimationType[] soAnimationTypeArray = null;
+
+    private Dictionary<AnimationClip, SO_AnimationType> animationTypeDictionaryByAnimation;
+    private Dictionary<string, SO_AnimationType> animationTypeDictionaryByCompositeAttributeKey; 
+    // composite is multi arguments in a single string 
+
+    private void Start()
+    {
+        // Initialise animation type dictionary keyed by animation clip
+        animationTypeDictionaryByAnimation = new Dictionary<AnimationClip, SO_AnimationType>();
+
+        foreach (SO_AnimationType item in soAnimationTypeArray)
+        {
+            animationTypeDictionaryByAnimation.Add(item.animationClip, item);
+        }
+
+        // Initialise animation type dictionary keyed by string
+        animationTypeDictionaryByCompositeAttributeKey = new Dictionary<string, SO_AnimationType>();
+
+        foreach (SO_AnimationType item in soAnimationTypeArray)
+        {
+            string key = item.characterPart.ToString() + item.partVariantColour.ToString() + item.partVariantType.ToString() + item.animationName.ToString();
+            animationTypeDictionaryByCompositeAttributeKey.Add(key, item);
+        }
+
+    }
+
+
+    public void ApplyCharacterCustomisationParameters(List<CharacterAttribute> characterAttributesList)
+    {
+        //Stopwatch s1 = Stopwatch.StartNew();
+
+        // Loop through all character attributes and set the animation override controller for each
+        foreach (CharacterAttribute characterAttribute in characterAttributesList)
+        {
+            Animator currentAnimator = null;
+            List<KeyValuePair<AnimationClip, AnimationClip>> animsKeyValuePairList = new List<KeyValuePair<AnimationClip, AnimationClip>>();
+
+            string animatorSOAssetName = characterAttribute.characterPart.ToString();
+
+            // Find animators in scene that match scriptable object animator type
+            Animator[] animatorsArray = character.GetComponentsInChildren<Animator>();
+
+            foreach (Animator animator in animatorsArray)
+            {
+                if (animator.name == animatorSOAssetName)
+                {
+                    currentAnimator = animator;
+                    break;
+                }
+            }
+
+            // Get base current animations for animator
+            AnimatorOverrideController aoc = new AnimatorOverrideController(currentAnimator.runtimeAnimatorController);
+            List<AnimationClip> animationsList = new List<AnimationClip>(aoc.animationClips);
+
+            foreach (AnimationClip animationClip in animationsList)
+            {
+                // find animation in dictionary
+                SO_AnimationType so_AnimationType;
+                bool foundAnimation = animationTypeDictionaryByAnimation.TryGetValue(animationClip, out so_AnimationType);
+
+                if (foundAnimation)
+                {
+                    string key = characterAttribute.characterPart.ToString() + characterAttribute.partVariantColour.ToString() + characterAttribute.partVariantType.ToString() + so_AnimationType.animationName.ToString();
+
+                    SO_AnimationType swapSO_AnimationType;
+                    bool foundSwapAnimation = animationTypeDictionaryByCompositeAttributeKey.TryGetValue(key, out swapSO_AnimationType);
+
+                    if (foundSwapAnimation)
+                    {
+                        AnimationClip swapAnimationClip = swapSO_AnimationType.animationClip;
+
+                        animsKeyValuePairList.Add(new KeyValuePair<AnimationClip, AnimationClip>(animationClip, swapAnimationClip));
+                    }
+                }
+            }
+
+            // Apply animation updates to animation override controller and then update animator with the new controller
+            aoc.ApplyOverrides(animsKeyValuePairList);
+            currentAnimator.runtimeAnimatorController = aoc;
+        }
+
+        // s1.Stop();
+        // UnityEngine.Debug.Log("Time to apply character customisation : " + s1.Elapsed + "   elapsed seconds");
+    }
+
+}
 ```
-2. asd
 
-## Title[6.18]
+### Modify Player.cs to call previously created method
 
-goals :
-->
-->
-
-concept :
--> 
-
-### Goals 1
-->
-1. asd
 ``` c#
-asd
-```
-2. asd
+using System.Collections.Generic; // new namespace here
+using UnityEngine;
 
-### Goals 2
-->
-1. asd
-``` c#
-asd
+
+private AnimationOverrides animationOverrides; // new var to ref previously created class
+
+private List<CharacterAttribute> characterAttributeCustomisationList; // list of things we want to swap in term of animation
+
+[Tooltip("Should be populated in the prefab with the equipped item sprite renderer")]
+
+[SerializeField] private SpriteRendered equippedItemSpriteRenderer = null; // ref to the GO body part "equipped item"
+
+// Player attributes that can be swapped
+private CharacterAttribute armsCharacterAttribute;
+private CharacterAttribute toolCharacterAttribute;
+
+protected override void Awake()
+{
+base.Awake();
+
+rigidBody2D = GetComponent<Rigidbody2D>();
+////////////////////
+//new part here
+////////////////////
+animationOverrides = GetComponentInChildren<AnimationOverrides>();
+
+// Initialise swappable character attributes
+armsCharacterAttribute = new CharacterAttribute(CharacterPartAnimator.arms, PartVariantColour.none, PartVariantType.none);
+toolCharacterAttribute = new CharacterAttribute(CharacterPartAnimator.tool, PartVariantColour.none, PartVariantType.hoe);
+
+// Initialise character attribute list
+characterAttributeCustomisationList = new List<CharacterAttribute>();
+////////////////////
+//end here
+////////////////////
+
+// get reference to main camera
+mainCamera = Camera.main;
+}
+
+    public void ClearCarriedItem()
+    {
+        equippedItemSpriteRenderer.sprite = null;
+        equippedItemSpriteRenderer.color = new Color(1f, 1f, 1f, 0f);
+
+        // Apply base character arms customisation
+        armsCharacterAttribute.partVariantType = PartVariantType.none;
+        characterAttributeCustomisationList.Clear();
+        characterAttributeCustomisationList.Add(armsCharacterAttribute);
+        animationOverrides.ApplyCharacterCustomisationParameters(characterAttributeCustomisationList);
+
+        isCarrying = false;
+    }
+
+    public void ShowCarriedItem(int itemCode)
+    {
+        ItemDetails itemDetails = InventoryManager.Instance.GetItemDetails(itemCode);
+        if (itemDetails != null)
+        {
+            equippedItemSpriteRenderer.sprite = itemDetails.itemSprite;
+            equippedItemSpriteRenderer.color = new Color(1f, 1f, 1f, 1f);
+
+            // Apply 'carry' character arms customisation
+            armsCharacterAttribute.partVariantType = PartVariantType.carry;
+            characterAttributeCustomisationList.Clear();
+            characterAttributeCustomisationList.Add(armsCharacterAttribute);
+            animationOverrides.ApplyCharacterCustomisationParameters(characterAttributeCustomisationList);
+
+            isCarrying = true;
+        }
+    }
 ```
-2. asd
+
+### Update the UIInventorySlot.cs
+->
+1. to call other methods when select an item
+``` c#
+private void SetSelectedItem()
+{
+[...] // at the end of the function, add :
+if (itemDetails.canBeCarried == true)
+{
+// Show player carrying item
+Player.Instance.ShowCarriedItem(itemDetails.itemCode);
+}
+else // show player carrying nothing
+{
+Player.Instance.ClearCarriedItem();
+}
+
+
+// and
+public void ClearSelectedItem()
+{
+[...] // add this the end of the function:
+// Clear player carrying item
+Player.Instance.ClearCarriedItem();
+```
+
+### Finish by creating the So, and GO !
+-> Link each SO 
+![[Pasted image 20221207203241.png]]
+
+-> create a child GO under the Player in hierarchy named "CharacterCustomiser" and add it the [AnimationOverrides] script as component, and drag all SOAnimator created previously
+-> On the Player GO, drag the EquippedItem child on the "Equipped Item Sprite Renderer"
+-> On the equipped Item child of Player, set its Transorm Y:1.5 to up the hands
