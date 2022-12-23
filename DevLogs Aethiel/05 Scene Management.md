@@ -290,150 +290,62 @@ private void PlayerTestInput()
 2. Unload the scene from the hierarchy since the SceneControllerManager we'll do it !
 ## Create a New Field Scene[5.2]
 
-goals :
-->
-->
+Create a second scene additively added to the hierarchy, and then unload it !
 
-concept :
--> 
-
-### Goals 1
-->
-1. asd
-``` c#
-asd
-```
-2. asd
-
-### Goals 2
-->
-1. asd
-``` c#
-asd
-```
-2. asd
-
+#### Day 7 | 08/12 (6h) 
 ## Move Between Scenes[5.3]
 
 goals :
-->
+-> Move between the Farm scene and the new one
 ->
 
 concept :
--> 
+-> farm -22;-31, -16;-31
+-> Cascad -22;30 -17;30
 
-### Goals 1
-->
+### Create a SceneTeleport GO
+-> under Scene1 Farm, create an empty GO named "SceneTeleport", and create a custom script "SceneTeleport"
 1. asd
 ``` c#
-asd
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+[RequireComponent(typeof(BoxCollider2D))]
+public class SceneTeleport : MonoBehaviour
+{
+    [SerializeField] private SceneName sceneNameGoto = SceneName.Scene1_Farm;
+    [SerializeField] private Vector3 scenePositionGoto = new Vector3();
+
+
+    private void OnTriggerStay2D(Collider2D collision)
+    {
+        Player player = collision.GetComponent<Player>();
+
+        if (player != null)
+        {
+            //  Calculate players new position
+
+            float xPosition = Mathf.Approximately(scenePositionGoto.x, 0f) ? player.transform.position.x : scenePositionGoto.x;
+
+            float yPosition = Mathf.Approximately(scenePositionGoto.y, 0f) ? player.transform.position.y : scenePositionGoto.y;
+
+            float zPosition = 0f;
+
+            // Teleport to new scene
+            SceneControllerManager.Instance.FadeAndLoadScene(sceneNameGoto.ToString(), new Vector3(xPosition, yPosition, zPosition));
+
+        }
+
+    }
+}
 ```
 2. asd
 
-### Goals 2
-->
-1. asd
-``` c#
-asd
-```
-2. asd
+### Set up the GO
+-> Assign the position and scene you want to go in the GO script, and voila !
 
 ## Create a New Farmhouse Cabin Scene[5.4]
 
-goals :
-->
-->
 
-concept :
--> 
 
-### Goals 1
-->
-1. asd
-``` c#
-asd
-```
-2. asd
-
-### Goals 2
-->
-1. asd
-``` c#
-asd
-```
-2. asd
-
-## Title[6.18]
-
-goals :
-->
-->
-
-concept :
--> 
-
-### Goals 1
-->
-1. asd
-``` c#
-asd
-```
-2. asd
-
-### Goals 2
-->
-1. asd
-``` c#
-asd
-```
-2. asd
-
-## Title[6.18]
-
-goals :
-->
-->
-
-concept :
--> 
-
-### Goals 1
-->
-1. asd
-``` c#
-asd
-```
-2. asd
-
-### Goals 2
-->
-1. asd
-``` c#
-asd
-```
-2. asd
-
-## Title[6.18]
-
-goals :
-->
-->
-
-concept :
--> 
-
-### Goals 1
-->
-1. asd
-``` c#
-asd
-```
-2. asd
-
-### Goals 2
-->
-1. asd
-``` c#
-asd
-```
-2. asd
